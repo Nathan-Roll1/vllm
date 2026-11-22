@@ -1,0 +1,58 @@
+meta:
+  title: Oruk Fourier 2B
+  slug: oruk-fourier-2b
+  provider: Oruk
+  description: English speech transcription from audio files through vLLM's OpenAI-compatible endpoint.
+  date_added: 2026-11-22
+  date_updated: 2026-11-22
+  tasks: [multimodal]
+  hardware:
+    l40s: verified
+  related_recipes: []
+
+model:
+  model_id: oruk/oruk-fourier-2b
+  min_vllm_version: 0.34.0
+  architecture: dense
+  parameter_count: 2.04B
+  active_parameters: 2.04B
+  context_length: 65536
+  base_args:
+    - --revision 8c2a8871f1304aa2f634da4fb95e24438c4945b9
+    - --tokenizer-revision 8c2a8871f1304aa2f634da4fb95e24438c4945b9
+    - --served-model-name oruk-fourier-2b
+    - --host 127.0.0.1
+    - --dtype bfloat16
+    - --enforce-eager
+    - --max-model-len 1024
+    - --max-num-seqs 2
+    - --gpu-memory-utilization 0.7
+  base_env: {}
+
+dependencies:
+  - note: Install the tested version with its audio dependencies.
+    command: 'uv pip install "vllm[audio]==0.34.0"'
+features: {}
+opt_in_features: []
+variants:
+  default:
+    precision: bf16
+    vram_minimum_gb: 5
+    description: Original BF16 checkpoint, tested on a 24 GB A10G and a 48 GB L40S.
+compatible_strategies: [single_node_tp]
+hardware_overrides: {}
+strategy_overrides: {}
+
+guide: |
+  ## Transcribe a recording
+
+  Fourier 2B transcribes English audio. Hosted or API serving requires [permission from Oruk](https://huggingface.co/oruk/oruk-fourier-2b#license). This recipe uses the original native checkpoint and a 1,024-token context for short utterances. Keep the model and tokenizer revisions together. The pinned revision contains the native weights without the GGUF and ONNX exports.
+
+  With the server running on the same machine, send a WAV or MP3 as multipart form data:
+
+  ```sh
+  curl -fsS http://127.0.0.1:8000/v1/audio/transcriptions \
+    -F file=@recording.wav -F model=oruk-fourier-2b -F language=en -F response_format=json
+  ```
+
+  Read the `text` field. The [A10G integration run](https://huggingface.co/jobs/oruk/6b0325d18d268c0fbd223b5b) tested WAV and MP3 on vLLM 0.34.0. The [L40S client run](https://huggingface.co/oruk/oruk-fourier-2b/tree/main/examples/licensed-serving) tested multipart clients and the AnythingLLM collector. Word timestamps and `verbose_json` are unavailable on this path.
